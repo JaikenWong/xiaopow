@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="hi" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="225" fill="url(#bg)"/>
+  <g fill="#fff" stroke="none">
+    <!-- 3 forward toes — SVG rotate(±θ) is CW visually in Y-down coords,
+         so left toe uses negative angle (tip tilts up-left). -->
+    <!-- left toe -->
+    <polygon transform="translate(410 605) rotate(-34)" points="-38,0 -38,-52 -33,-115 -26,-178 -17,-235 -8,-275 0,-287 8,-275 17,-235 26,-178 33,-115 38,-52 38,0"/>
+    <!-- center toe -->
+    <polygon transform="translate(512 565)" points="-38,0 -38,-52 -33,-115 -26,-178 -17,-235 -8,-275 0,-287 8,-275 17,-235 26,-178 33,-115 38,-52 38,0"/>
+    <!-- right toe -->
+    <polygon transform="translate(614 605) rotate(34)" points="-38,0 -38,-52 -33,-115 -26,-178 -17,-235 -8,-275 0,-287 8,-275 17,-235 26,-178 33,-115 38,-52 38,0"/>
+    <!-- back spur (180° = down) -->
+    <polygon transform="translate(512 720) rotate(180)" points="-29,0 -29,-25 -25,-58 -20,-89 -13,-117 -6,-137 0,-143 6,-137 13,-117 20,-89 25,-58 29,-25 29,0"/>
+    <!-- foot pad (horizontal ellipse) -->
+    <ellipse cx="512" cy="600" rx="170" ry="85"/>
+  </g>
+  <!-- subtle top sheen -->
+  <rect width="1024" height="1024" rx="225" fill="url(#hi)"/>
+</svg>

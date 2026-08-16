@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XiaoPaw 小爪子</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="logo.svg" alt="" class="brand-logo" />
+        <div>
+          <div class="brand-name">XiaoPaw</div>
+          <div class="brand-sub">小爪子 · 工作助手</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-tab="status">
+          <span class="nav-icon">●</span> 运行状态
+        </button>
+        <button class="nav-item" data-tab="config">
+          <span class="nav-icon">⚙</span> 配置
+        </button>
+        <button class="nav-item" data-tab="logs">
+          <span class="nav-icon">📄</span> 日志
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="dot" id="conn-dot"></span>
+        <span id="conn-text">连接中…</span>
+      </div>
+    </aside>
+
+    <!-- 主内容 -->
+    <main class="content">
+      <!-- 状态页 -->
+      <section class="panel active" id="panel-status">
+        <h1>运行状态</h1>
+        <div class="status-grid">
+          <div class="card">
+            <div class="card-label">服务状态</div>
+            <div class="card-value" id="st-running">—</div>
+          </div>
+          <div class="card">
+            <div class="card-label">飞书机器人</div>
+            <div class="card-value" id="st-feishu">
+              <span class="dot" id="st-feishu-dot"></span>
+              <span id="st-feishu-text">—</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-label">热重启次数</div>
+            <div class="card-value" id="st-reloads">—</div>
+          </div>
+          <div class="card">
+            <div class="card-label">配置文件</div>
+            <div class="card-value mono small" id="st-path">—</div>
+          </div>
+        </div>
+        <div class="card error-card hidden" id="st-error">
+          <div class="card-label error-text">最近错误</div>
+          <div class="card-value small" id="st-error-text">—</div>
+        </div>
+
+        <h2 style="margin-top:24px;font-size:14px;">连通测试</h2>
+        <div class="actions test-actions">
+          <button class="btn" id="btn-test-feishu">测试飞书机器人</button>
+          <button class="btn" id="btn-test-llm">测试模型连通</button>
+          <span class="test-result" id="test-result"></span>
+        </div>
+
+        <h2 style="margin-top:18px;font-size:14px;">机器人控制</h2>
+        <div class="actions">
+          <button class="btn btn-warn" id="btn-disconnect-feishu">断开机器人</button>
+          <button class="btn" id="btn-reconnect-feishu">重新连接</button>
+          <button class="btn" id="btn-refresh-status">刷新状态</button>
+        </div>
+      </section>
+
+      <!-- 配置页 -->
+      <section class="panel" id="panel-config">
+        <h1>配置</h1>
+        <form id="config-form">
+          <fieldset>
+            <legend>飞书机器人</legend>
+            <div class="form-row">
+              <label>App ID<input type="text" name="feishu.app_id" placeholder="cli_xxx" /></label>
+              <label>App Secret<input type="password" name="feishu.app_secret" placeholder="******" /></label>
+            </div>
+            <div class="form-row">
+              <label>Encrypt Key<input type="text" name="feishu.encrypt_key" placeholder="可选" /></label>
+              <label>Verification Token<input type="text" name="feishu.verification_token" placeholder="可选" /></label>
+            </div>
+            <label>允许的群聊 ID（逗号分隔，留空全部放行）<input type="text" name="feishu.allowed_chats" placeholder="oc_xxx,oc_yyy" /></label>
+          </fieldset>
+
+          <fieldset>
+            <legend>模型（OpenAI 兼容）</legend>
+            <div class="form-row">
+              <label>模型名<input type="text" name="agent.model" placeholder="MiniMax-M3" /></label>
+              <label>子 Agent 模型<input type="text" name="agent.sub_agent_model" placeholder="MiniMax-M3" /></label>
+            </div>
+            <label>Base URL（留空用 MiniMax 默认）<input type="text" name="agent.base_url" placeholder="https://api.minimaxi.com/v1" /></label>
+            <label>API Key（留空读环境变量 MINIMAX_API_KEY）<input type="password" name="agent.api_key" placeholder="******" /></label>
+          </fieldset>
+
+          <fieldset>
+            <legend>百度搜索</legend>
+            <label>百度千帆 API Key<input type="password" name="baidu.api_key" placeholder="bce-v3/..." /></label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Claude Code（本地需求开发）</legend>
+            <label>工作目录（claude 在此执行需求）<input type="text" name="claude.workspace_path" placeholder="/path/to/your/project" /></label>
+            <div class="form-row">
+              <label>模型（可选）<input type="text" name="claude.model" placeholder="默认" /></label>
+              <label>超时（秒）<input type="number" name="claude.timeout" value="600" /></label>
+            </div>
+            <label>输出截断字符数<input type="number" name="claude.max_output_chars" value="12000" /></label>
+          </fieldset>
+
+          <div class="actions">
+            <button type="button" class="btn btn-primary" id="btn-save">保存并重启服务</button>
+            <span class="save-status" id="save-status"></span>
+          </div>
+        </form>
+      </section>
+
+      <!-- 日志页 -->
+      <section class="panel" id="panel-logs">
+        <h1>日志</h1>
+        <div class="actions">
+          <button class="btn" id="btn-refresh-logs">刷新</button>
+        </div>
+        <pre class="log-view" id="log-view">加载中…</pre>
+      </section>
+    </main>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>
