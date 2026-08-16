@@ -1,14 +1,14 @@
 """集成测试公共 Fixtures
 
 运行前提：
-  - QWEN_API_KEY 或 DASHSCOPE_API_KEY 已设置（否则 LLM 测试自动跳过）
+  - MINIMAX_API_KEY 已设置（否则 LLM 测试自动跳过）
   - AIO-Sandbox 运行在 localhost:8022（否则 sandbox 测试自动跳过）
 
 快速运行（仅 slash command，无需 API key）：
   pytest tests/integration/ -m "not llm"
 
 完整运行（需要 API key）：
-  QWEN_API_KEY=sk-xxx pytest tests/integration/ -v -s
+  MINIMAX_API_KEY=sk-xxx pytest tests/integration/ -v -s
 
 仅 sandbox 相关（需 API key + sandbox）：
   pytest tests/integration/ -m "sandbox" -v -s
@@ -47,8 +47,8 @@ def _sandbox_reachable() -> bool:
         return False
 
 
-def _qwen_api_key() -> str | None:
-    return os.getenv("QWEN_API_KEY") or os.getenv("DASHSCOPE_API_KEY")
+def _minimax_api_key() -> str | None:
+    return os.getenv("MINIMAX_API_KEY")
 
 
 # ── pytest 钩子：注册 markers ──────────────────────────────────────────────────
@@ -56,7 +56,7 @@ def _qwen_api_key() -> str | None:
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers",
-        "llm: 需要真实 LLM API（QWEN_API_KEY）的测试",
+        "llm: 需要真实 LLM API（MINIMAX_API_KEY）的测试",
     )
     config.addinivalue_line(
         "markers",
@@ -76,10 +76,10 @@ def pytest_configure(config: pytest.Config) -> None:
 
 @pytest.fixture(scope="session")
 def qwen_api_key() -> str:
-    """返回 Qwen API Key；未设置则跳过整个 session。"""
-    key = _qwen_api_key()
+    """返回 MiniMax API Key；未设置则跳过整个 session。"""
+    key = _minimax_api_key()
     if not key:
-        pytest.skip("QWEN_API_KEY / DASHSCOPE_API_KEY 未设置，跳过 LLM 集成测试")
+        pytest.skip("MINIMAX_API_KEY 未设置，跳过 LLM 集成测试")
     return key
 
 
@@ -142,7 +142,7 @@ async def llm_client(
     sandbox_available: bool,
 ) -> TestClient:
     """
-    完整 E2E 客户端：真实 AliyunLLM + 真实 Runner + 真实 SessionManager。
+    完整 E2E 客户端：真实 MiniMaxLLM + 真实 Runner + 真实 SessionManager。
     如果沙盒可用，连接沙盒；否则 skill_crew 调用沙盒时会自然失败并被跳过。
     """
     from xiaopaw.agents.main_crew import build_agent_fn  # noqa: PLC0415

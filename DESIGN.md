@@ -425,7 +425,7 @@ xiaopaw/
 |-------|---------|------|
 | `workspace` | `id`, `name` | Workspace 唯一标识，多实例时区分 |
 | `feishu` | `app_id`, `app_secret` | 推荐环境变量注入（`${FEISHU_APP_ID}`），不硬编码 |
-| `agent` | `model: qwen3-max`, `max_iter: 50`, `sub_agent_max_iter: 20`, `timeout_s: 300` | 主/Sub-Crew Agent 参数 |
+| `agent` | `model: MiniMax-M3`, `max_iter: 50`, `sub_agent_max_iter: 20`, `timeout_s: 300` | 主/Sub-Crew Agent 参数 |
 | `skills` | `global_dir`, `local_dir` | 本地私有 Skills 可覆盖全局 |
 | `sandbox` | `url: http://localhost:8080/mcp`, `timeout_s: 120` | AIO-Sandbox MCP 连接 |
 | `session` | `max_history_turns: 20` | 注入对话历史的最大轮数 |

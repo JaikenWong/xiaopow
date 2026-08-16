@@ -15,10 +15,10 @@ bot:
   prefix: ""
 
 agent:
-  model: "qwen3.6-max-preview"
+  model: "MiniMax-M3"
   max_iter: 50
   max_input_tokens: 30000
-  sub_agent_model: "qwen3.6-max-preview"
+  sub_agent_model: "MiniMax-M3"
   sub_agent_max_iter: 20
   timeout_s: 300
 

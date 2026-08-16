@@ -86,8 +86,6 @@ class _XiaoPawEventHandler(EventDispatcherHandler):
             sender = event_obj.get("sender") or {}
             sender_ids = sender.get("sender_id") or {}
             sender_open_id = sender_ids.get("open_id") or ""
-
-            chat_type = message.get("chat_type") or ""
             chat_id = message.get("chat_id") or ""
             thread_id = message.get("thread_id")
 
@@ -137,6 +135,11 @@ class _XiaoPawEventHandler(EventDispatcherHandler):
             asyncio.run_coroutine_threadsafe(self._on_message(inbound), self._loop)
         except Exception:
             logger.exception("Failed to handle im.message.receive_v1 websocket event")
+
+    def _do_without_validation(self, payload: bytes) -> None:
+        """lark-oapi >= 1.5 的 ws.Client 内部调用此私有方法分发事件（见 ws/client.py `_handle_data_frame`），
+        必须同时覆写才能生效；转发到公开方法保持新旧 SDK 兼容。"""
+        return self.do_without_validation(payload)
 
 
 class FeishuListener:

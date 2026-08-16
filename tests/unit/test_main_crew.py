@@ -343,7 +343,7 @@ class TestBuildCrew:
     def _mock_context(self):
         """返回一组 patch 上下文，避免 CrewAI / LLM 初始化副作用。"""
         return [
-            patch("xiaopaw.agents.main_crew.AliyunLLM"),
+            patch("xiaopaw.agents.main_crew.MiniMaxLLM"),
             patch("xiaopaw.agents.main_crew.Agent"),
             patch("xiaopaw.agents.main_crew.Task"),
             patch("xiaopaw.agents.main_crew.Crew"),
@@ -352,7 +352,7 @@ class TestBuildCrew:
         ]
 
     def test_build_crew_returns_crew_instance(self):
-        with patch("xiaopaw.agents.main_crew.AliyunLLM"), \
+        with patch("xiaopaw.agents.main_crew.MiniMaxLLM"), \
              patch("xiaopaw.agents.main_crew.Agent"), \
              patch("xiaopaw.agents.main_crew.Task"), \
              patch("xiaopaw.agents.main_crew.Crew") as mock_crew_cls, \
@@ -363,7 +363,7 @@ class TestBuildCrew:
             assert result == mock_crew_cls.return_value
 
     def test_build_crew_passes_session_id_to_skill_loader(self):
-        with patch("xiaopaw.agents.main_crew.AliyunLLM"), \
+        with patch("xiaopaw.agents.main_crew.MiniMaxLLM"), \
              patch("xiaopaw.agents.main_crew.Agent"), \
              patch("xiaopaw.agents.main_crew.Task"), \
              patch("xiaopaw.agents.main_crew.Crew"), \
@@ -375,7 +375,7 @@ class TestBuildCrew:
             assert call_kwargs.get("session_id") == "my-session-id"
 
     def test_build_crew_passes_sandbox_url_when_provided(self):
-        with patch("xiaopaw.agents.main_crew.AliyunLLM"), \
+        with patch("xiaopaw.agents.main_crew.MiniMaxLLM"), \
              patch("xiaopaw.agents.main_crew.Agent"), \
              patch("xiaopaw.agents.main_crew.Task"), \
              patch("xiaopaw.agents.main_crew.Crew"), \
@@ -386,7 +386,7 @@ class TestBuildCrew:
             assert call_kwargs.get("sandbox_url") == "http://sandbox:8022/mcp"
 
     def test_build_crew_no_sandbox_url_not_passed(self):
-        with patch("xiaopaw.agents.main_crew.AliyunLLM"), \
+        with patch("xiaopaw.agents.main_crew.MiniMaxLLM"), \
              patch("xiaopaw.agents.main_crew.Agent"), \
              patch("xiaopaw.agents.main_crew.Task"), \
              patch("xiaopaw.agents.main_crew.Crew"), \
@@ -399,7 +399,7 @@ class TestBuildCrew:
 
     def test_build_crew_with_extra_tools(self):
         extra_tool = MagicMock()
-        with patch("xiaopaw.agents.main_crew.AliyunLLM"), \
+        with patch("xiaopaw.agents.main_crew.MiniMaxLLM"), \
              patch("xiaopaw.agents.main_crew.Agent") as mock_agent_cls, \
              patch("xiaopaw.agents.main_crew.Task"), \
              patch("xiaopaw.agents.main_crew.Crew"), \
@@ -414,7 +414,7 @@ class TestBuildCrew:
 
     def test_build_crew_with_step_callback(self):
         step_cb = MagicMock()
-        with patch("xiaopaw.agents.main_crew.AliyunLLM"), \
+        with patch("xiaopaw.agents.main_crew.MiniMaxLLM"), \
              patch("xiaopaw.agents.main_crew.Agent"), \
              patch("xiaopaw.agents.main_crew.Task"), \
              patch("xiaopaw.agents.main_crew.Crew") as mock_crew_cls, \

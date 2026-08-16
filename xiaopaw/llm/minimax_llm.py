@@ -1,4 +1,4 @@
-"""AliyunLLM — 基于 CrewAI BaseLLM 的阿里云通义千问适配器（完整实现，含多模态 + Function Calling）。"""
+"""MiniMaxLLM — 基于 CrewAI BaseLLM 的 MiniMax M3 适配器（OpenAI 兼容格式，含多模态 + Function Calling）。"""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # MCP 工具中要求为 list 的可选参数：LLM 常传字符串 "None"，导致 schema 校验失败，此处规范为 []
 _MCP_LIST_PARAMS = frozenset({"file_types"})
 
-# 单条 tool 返回内容最大字符数，超出则截断，避免 payload 过大导致 API 500（如 xlsx 解析结果、大文件 list 等）
+# 单条 tool 返回内容最大字符数，超出则截断，避免 payload 过大导致 API 500
 # 可通过环境变量 LLM_TOOL_RESULT_MAX_CHARS 覆盖，默认约 12000 字符（约 3k tokens）
 _DEFAULT_TOOL_RESULT_MAX_CHARS = 12_000
 _TRUNCATE_SUFFIX = (
@@ -95,52 +95,48 @@ def _truncate_tool_results(
     return out
 
 
-class AliyunLLM(BaseLLM):
-    """阿里云通义千问 LLM 实现类，支持重试与异步调用。"""
+class MiniMaxLLM(BaseLLM):
+    """MiniMax M3 LLM 实现类，支持重试与异步调用，OpenAI 兼容 Chat Completions。"""
 
-    ENDPOINTS: ClassVar[dict[str, str]] = {
-        "cn": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-        "intl": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
-        "finance": "https://dashscope-finance.aliyuncs.com/compatible-mode/v1/chat/completions",
-    }
+    # MiniMax 开放平台（海外端点按需切换为 https://api.MiniMax.chat/v1）
+    DEFAULT_BASE_URL: ClassVar[str] = "https://api.minimaxi.com/v1"
+    DEFAULT_IMAGE_MODEL: ClassVar[str] = "MiniMax-VL-01"
 
     def __init__(
         self,
         model: str,
         image_model: str | None = None,
         api_key: str | None = None,
-        region: str = "cn",
+        base_url: str | None = None,
         temperature: float | None = None,
         timeout: int = 600,
         retry_count: int | None = None,
     ) -> None:
         """
-        初始化阿里云 LLM。
+        初始化 MiniMax LLM。
 
         Args:
-            model: 模型名称，如 "qwen-plus", "qwen-turbo" 等
-            api_key: API Key，不提供则从环境变量 QWEN_API_KEY 或 DASHSCOPE_API_KEY 读取
-            region: 地域 "cn" / "intl" / "finance"
+            model: 模型名称，如 "MiniMax-M3"
+            image_model: 多模态模型名，默认 MiniMax-VL-01
+            api_key: API Key，不提供则从环境变量 MINIMAX_API_KEY 读取
+            base_url: API base URL，默认 https://api.minimaxi.com/v1
             temperature: 采样温度
             timeout: 请求超时（秒），默认 600
             retry_count: 请求失败时的重试次数，默认 2；可从环境变量 LLM_RETRY_COUNT 读取
         """
         super().__init__(model=model, temperature=temperature)
 
-        self.api_key = api_key or os.getenv("QWEN_API_KEY") or os.getenv("DASHSCOPE_API_KEY")
+        self.api_key = api_key or os.getenv("MINIMAX_API_KEY")
         if not self.api_key:
             raise ValueError(
-                "API Key 未提供。请通过 api_key 传入或设置环境变量 QWEN_API_KEY 或 DASHSCOPE_API_KEY"
+                "API Key 未提供。请通过 api_key 传入或设置环境变量 MINIMAX_API_KEY"
             )
 
-        if region not in self.ENDPOINTS:
-            raise ValueError(f"不支持的地域: {region}，支持: {list(self.ENDPOINTS.keys())}")
-        self.endpoint = self.ENDPOINTS[region]
-        self.region = region
+        self.base_url = (base_url or os.getenv("MINIMAX_BASE_URL") or self.DEFAULT_BASE_URL).rstrip("/")
+        self.endpoint = f"{self.base_url}/chat/completions"
         self.timeout = timeout
-        self.image_model = image_model
-        if not self.image_model:
-            self.image_model = "qwen3-vl-plus"
+        self.image_model = image_model or os.getenv("MINIMAX_IMAGE_MODEL") or self.DEFAULT_IMAGE_MODEL
+
         _rc = retry_count
         if _rc is None and os.getenv("LLM_RETRY_COUNT") is not None:
             try:
@@ -150,8 +146,8 @@ class AliyunLLM(BaseLLM):
         self.retry_count = _rc if _rc is not None else 2
 
         # Debug 开关：仅在调试模式下详细打印请求 payload
-        # 环境变量 QWEN_DEBUG_PAYLOAD=1/true/on 时开启
-        self.debug_payload = os.getenv("QWEN_DEBUG_PAYLOAD", "").lower() in {
+        # 环境变量 MINIMAX_DEBUG_PAYLOAD=1/true/on 时开启
+        self.debug_payload = os.getenv("MINIMAX_DEBUG_PAYLOAD", "").lower() in {
             "1",
             "true",
             "yes",
@@ -161,7 +157,7 @@ class AliyunLLM(BaseLLM):
     def _normalize_multimodal_tool_result(self, messages: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], bool]:
         """
         将 CrewAI 对 AddImageTool/AddImageToolLocal 的 stringify 结果还原为多模态 user 消息，
-        否则 DashScope 会因消息格式或体积返回 400。
+        否则 MiniMax 会因消息格式或体积返回 400。
 
         Returns:
             Tuple[list[dict[str, Any]], bool]: 返回处理后的消息列表和是否使用多模态模型
@@ -193,7 +189,7 @@ class AliyunLLM(BaseLLM):
                 continue
             elif "Add image to content Local" in s and "Observation: http" in s:
                 idx = s.find("Observation: http")
-                
+
                 data_url = "http"+s[idx:]
                 text = s[:idx]+"图片内容已加载"
                 user_msg = {
@@ -220,7 +216,7 @@ class AliyunLLM(BaseLLM):
         **kwargs: Any,
     ) -> str | Any:
         """
-        调用阿里云 LLM API，支持 Function Calling、多模态消息、重试与空内容重试。
+        调用 MiniMax Chat Completions API，支持 Function Calling、多模态消息、重试与空内容重试。
 
         Args:
             messages: 消息列表或单字符串；content 可为字符串或多模态数组
@@ -242,7 +238,7 @@ class AliyunLLM(BaseLLM):
         messages, flag = self._normalize_multimodal_tool_result(messages)
         logger.info("normalized_multimodal_tool_result flag=%s messages=%s", flag, json.dumps(messages, ensure_ascii=False, indent=2))
         self._validate_messages(messages)
-        # 截断过长的 tool 返回，避免 payload 过大导致 DashScope 500
+        # 截断过长的 tool 返回，避免 payload 过大
         messages = _truncate_tool_results(messages)
 
         payload: dict[str, Any] = {
@@ -425,7 +421,7 @@ class AliyunLLM(BaseLLM):
             )
 
         return content
-    
+
     def _handle_function_calls(
         self,
         tool_calls: list[dict],
@@ -494,7 +490,7 @@ class AliyunLLM(BaseLLM):
         _retry_on_empty: bool = True,
         **kwargs: Any,
     ) -> str | Any:
-        """异步调用阿里云 Chat Completions API，通过线程池执行同步 call。"""
+        """异步调用 MiniMax Chat Completions API，通过线程池执行同步 call。"""
         return await asyncio.to_thread(
             self.call,
             messages,
@@ -505,25 +501,25 @@ class AliyunLLM(BaseLLM):
             _retry_on_empty=_retry_on_empty,
             **kwargs,
         )
-    
+
     def supports_function_calling(self) -> bool:
         """
         是否支持 Function Calling
-        
+
         Returns:
-            True，阿里云通义千问支持 Function Calling
+            True，MiniMax M3 支持 Function Calling
         """
         return True
-    
+
     def supports_stop_words(self) -> bool:
         """
         是否支持停止词
-        
+
         Returns:
-            True，阿里云通义千问支持 stop 参数
+            True，MiniMax M3 支持 stop 参数
         """
         return True
-    
+
     def _validate_messages(self, messages: list[dict[str, Any]]) -> None:
         """校验消息格式（含多模态 content）。"""
         valid_roles = {"system", "user", "assistant", "tool"}
@@ -537,7 +533,7 @@ class AliyunLLM(BaseLLM):
                     raise ValueError(f"tool 消息 {i} 缺少 tool_call_id/content: {msg}")
             elif "content" not in msg and msg.get("tool_calls") is None:
                 raise ValueError(f"消息 {i} 缺少 content 且无 tool_calls: {msg}")
-            
+
 
     def _prepare_stop_words(
         self, stop: str | list[str | int]
@@ -554,9 +550,11 @@ class AliyunLLM(BaseLLM):
     def get_context_window_size(self) -> int:
         """根据模型名返回上下文窗口大小（Token 数）。"""
         m = self.model.lower()
-        if "long" in m:
-            return 200_000
-        if "max" in m or "plus" in m or "turbo" in m or "flash" in m:
-            return 131_072
-        return 8_192
-
+        # MiniMax-M3 / MiniMax-M2 / MiniMax-01 系列：1M tokens
+        if any(tag in m for tag in ("m3", "m2", "-01")):
+            return 1_048_576
+        # 视觉模型：16K 偏保守
+        if "vl" in m:
+            return 16_384
+        # 其他 MiniMax 文本模型：32K
+        return 32_768

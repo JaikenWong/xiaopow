@@ -96,7 +96,7 @@ thread:oc_chat789:ot_x  →    s-uuid-005
 **配置要点**：
 - role: "XiaoPaw 工作助手"
 - tools: `[SkillLoaderTool(...)]` — 唯一工具
-- llm: `qwen3-max`，max_iter: 50
+- llm: `MiniMax-M3`，max_iter: 50
 
 **安全隔离原则**：`session_id` 不通过 LLM 上下文（task description / akickoff inputs）传递，仅由系统内部管理（`SkillLoaderTool._session_id` PrivateAttr）。LLM 只能看到注入 description 中的实际路径，无法获取或篡改 session_id 本身。
 
@@ -164,7 +164,7 @@ Sub-Crew 通过 `MCPServerHTTP` 接入 AIO-Sandbox，开放全部 MCP 工具（�
 - 每次 Skill 调用都构建**新实例**，防止状态污染
 - Sub-Crew 不注入 `step_callback`（verbose 只推主 Agent）
 - session 工作目录通过 `SkillLoaderTool._get_skill_instructions()` 注入到任务指令（sandbox_execution_directive），不经过 LLM 可见的 task inputs
-- Agent 配置：role=`{skill_name} 执行专家`，model=`qwen3-max`，max_iter=20
+- Agent 配置：role=`{skill_name} 执行专家`，model=`MiniMax-M3`，max_iter=20
 - Task 期望输出：JSON 格式的 `SkillResult`（output_pydantic=SkillResult）
 
 ---

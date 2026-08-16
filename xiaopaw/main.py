@@ -34,6 +34,29 @@ from xiaopaw.session.manager import SessionManager
 logger = logging.getLogger(__name__)
 
 
+def _disable_crewai_tracing_prompts() -> None:
+    """关闭 CrewAI trace 交互提示。
+
+    新版 CrewAI 在 kickoff() 后可能弹出
+    "Would you like to view your execution traces? [y/N] (20s timeout)"
+    该提示用 input() 阻塞等待键盘输入（前台终端 20s，无人应答），
+    会卡住 per-routing_key worker 队列。守护进程场景必须禁用。
+    SDK 环境变量 CREWAI_TRACING_ENABLED=false 显式关闭 tracing，
+    同时调用 set_suppress_tracing_messages 抑制首次执行确认/提示。
+    两者都做，防御 CrewAI 版本差异。
+    """
+    os.environ.setdefault("CREWAI_TRACING_ENABLED", "false")
+    try:
+        from crewai.events.listeners.tracing.utils import (  # noqa: PLC0415
+            set_suppress_tracing_messages,
+        )
+
+        set_suppress_tracing_messages(True)
+    except ImportError:
+        # 旧版 CrewAI 无此 API，环境变量已兜底
+        logger.debug("crewai tracing utils not available, skipped")
+
+
 def _load_config(config_path: Path) -> dict:
     if not config_path.exists():
         raise FileNotFoundError(
@@ -203,6 +226,7 @@ async def _run_test_api(app: object, host: str, port: int) -> None:
 
 
 def main() -> None:
+    _disable_crewai_tracing_prompts()
     asyncio.run(async_main())
 
 

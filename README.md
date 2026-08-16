@@ -34,7 +34,8 @@ xiaopaw/
 ├── main.py                  # 进程入口
 ├── models.py                # InboundMessage / Attachment / SenderProtocol
 ├── runner.py                # 执行引擎（per-routing_key 队列、Slash 命令、Agent 调用）
-├── llm/aliyun_llm.py        # AliyunLLM 适配器（通义千问，支持多模态+Function Calling）
+├── llm/minimax_llm.py       # MiniMaxLLM 适配器（MiniMax M3，OpenAI 兼容，多模态+Function Calling）
+├── llm/aliyun_llm.py        # AliyunLLM 适配器（通义千问，兼容保留）
 ├── feishu/
 │   ├── listener.py          # WebSocket 事件 → InboundMessage
 │   ├── sender.py            # 消息发送（p2p/group/thread），含重试
@@ -73,10 +74,10 @@ pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 **环境变量**：
 
 ```bash
-export QWEN_API_KEY=<阿里云千问 API Key>
+export MINIMAX_API_KEY=<MiniMax API Key>
 export BAIDU_API_KEY=<百度千帆 API Key>       # baidu_search Skill 需要
 # 调试时可选开启完整请求 payload 日志
-export QWEN_DEBUG_PAYLOAD=1
+export MINIMAX_DEBUG_PAYLOAD=1
 ```
 
 ### 配置 `config.yaml`
@@ -176,7 +177,7 @@ python3 -m pytest tests/unit/ -v --cov=xiaopaw --cov-report=term-missing
 # 集成测试（无 LLM，无 Sandbox）
 python3 -m pytest tests/integration/ -m "not llm and not sandbox" -v
 
-# 集成测试（含 LLM，需设置 QWEN_API_KEY）
+# 集成测试（含 LLM，需设置 MINIMAX_API_KEY）
 python3 -m pytest tests/integration/test_e2e_conversation.py -m "llm and not sandbox" -v -s
 
 # 完整集成测试（需启动 Sandbox）
@@ -277,8 +278,8 @@ routing_key_2（群B）:   ──msg1──msg2──        串行
 
 | 层 | 角色 | LLM | 工具 |
 |----|------|-----|------|
-| Main Crew | 意图理解 + 任务规划 | qwen3.6-max-preview | SkillLoaderTool |
-| Sub-Crew | 具体任务执行 | qwen3-max | MCP Sandbox 工具 |
+| Main Crew | 意图理解 + 任务规划 | MiniMax-M3 | SkillLoaderTool |
+| Sub-Crew | 具体任务执行 | MiniMax-M3 | MCP Sandbox 工具 |
 
 **理解要点**：
 - Main Crew 只有一个 Tool（SkillLoaderTool）——"单工具原则"，所有能力通过 Skill 提供

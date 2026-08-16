@@ -30,7 +30,7 @@ import yaml
 from crewai import Agent, Crew, Process, Task
 from crewai.mcp import MCPServerHTTP
 
-from xiaopaw.llm.aliyun_llm import AliyunLLM
+from xiaopaw.llm.minimax_llm import MiniMaxLLM
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def build_skill_crew(
     skill_instructions: str,
     session_id: str = "",
     sandbox_mcp_url: str = _DEFAULT_SANDBOX_MCP_URL,
-    sub_agent_model: str = "qwen3.6-max-preview",
+    sub_agent_model: str = "MiniMax-M3",
     max_iter: int = 20,
 ) -> Crew:
     """
@@ -80,7 +80,7 @@ def build_skill_crew(
         url=sandbox_mcp_url,
     )
 
-    skill_llm = AliyunLLM(model=sub_agent_model, region="cn", temperature=0.3)
+    skill_llm = MiniMaxLLM(model=sub_agent_model, temperature=0.3)
 
     session_dir = (
         f"/workspace/sessions/{session_id}" if session_id else "/workspace/sessions/<session_id>"

@@ -19,11 +19,11 @@ All code and comments should be written in Chinese where user-facing, English fo
 - **Python** (async, asyncio-based)
 - **CrewAI** — Agent orchestration (Main Agent + Sub-Crew pattern)
 - **lark-oapi** — Feishu SDK (WebSocket client + REST API)
-- **Qwen3-max** — LLM model for agents
+- **MiniMax-M3** — LLM model for agents
 - **AIO-Sandbox** — Docker-based MCP server for isolated code execution
 - **croniter** — Cron expression parsing for scheduled tasks
  - **prometheus_client** — Metrics export for observability
- - **AliyunLLM adapter** — Custom CrewAI `BaseLLM` implementation in `xiaopaw/llm/aliyun_llm.py` for calling Qwen via DashScope-compatible API (supports retries, function calling, multimodal image inputs)
+ - **MiniMaxLLM adapter** — Custom CrewAI `BaseLLM` implementation in `xiaopaw/llm/minimax_llm.py` for calling MiniMax M3 via OpenAI-compatible Chat Completions (supports retries, function calling, multimodal image inputs)
 
 ## Architecture (Key Concepts)
 
@@ -46,7 +46,8 @@ xiaopaw/
 ├── main.py                  # Entry: starts Listener + CronService + CleanupService + TestAPI
 ├── config.yaml              # Workspace config (feishu creds via env vars)
 ├── llm/
-│   └── aliyun_llm.py        # AliyunLLM: CrewAI BaseLLM adapter for Aliyun Qwen
+│   ├── aliyun_llm.py        # AliyunLLM: CrewAI BaseLLM adapter for Aliyun Qwen (legacy, 保留兼容)
+│   └── minimax_llm.py       # MiniMaxLLM: CrewAI BaseLLM adapter for MiniMax M3
 ├── feishu/
 │   ├── listener.py          # WebSocket event → InboundMessage
 │   ├── downloader.py        # File/image download to session uploads/
@@ -141,8 +142,8 @@ python3 -m pytest tests/unit/test_runner.py::TestSlashNew::test_creates_new_sess
 # Run integration tests (no LLM)
 python3 -m pytest tests/integration/ -m "not llm" -v
 
-# Run integration tests (with LLM)
-export QWEN_API_KEY=<your_key>
+# Run iMINIMAXration tests (with LLM)
+export MINIMAX_API_KEY=<your_key>
 python3 -m pytest tests/integration/test_e2e_conversation.py -m "llm and not sandbox" -v -s
 ```
 
@@ -162,7 +163,8 @@ python3 -m pytest tests/integration/test_e2e_conversation.py -m "llm and not san
 - `xiaopaw/feishu/listener.py` — FeishuListener (im.message.receive_v1 + im.chat.member.bot.added_v1，post 富文本解析，allowed_chats 白名单)
 - `xiaopaw/feishu/sender.py` — FeishuSender (send: interactive 卡片 lark_md 格式；send_thinking/update_card 加载效果；send_text 纯文本)
 - `xiaopaw/feishu/downloader.py` — FeishuDownloader: 附件下载到 workspace/sessions/{sid}/uploads/
-- `xiaopaw/main.py` — Full entry point: load config.yaml, start all services (Listener + CronService + CleanupService + TestAPI + metrics)
+- `xiaopaw/mainminimax_llm.py` — MiniMaxLLM: CrewAI `BaseLLM` adapter for MiniMax M3 (sync/async, retries, function calling, multimodal)
+- `xiaopaw/llm/aliyun_llm.py` — AliyunLLM: CrewAI `BaseLLM` adapter for Qwen（兼容保留）+ metrics)
 - `xiaopaw/llm/aliyun_llm.py` — AliyunLLM: CrewAI `BaseLLM` adapter for Qwen (sync/async, retries, function calling, multimodal)
 - `xiaopaw/tools/add_image_tool_local.py` — AddImageToolLocal: 本地图片 → base64 data URL，含路径遍历防护
 - `xiaopaw/tools/baidu_search_tool.py` — BaiduSearchTool: 百度千帆 web_search 封装
@@ -201,7 +203,7 @@ Last review: 2026-03-06. All CRITICAL and HIGH issues fixed. Remaining MEDIUM:
 - baidu_search Skill：百度千帆搜索，BAIDU_API_KEY 写入 .config/baidu.json
 - web_browse Skill：sandbox_convert_to_markdown + browser_* 全工具浏览器自动化
 - Sub-Crew 移除 MCP 白名单（create_static_tool_filter），改用 backstory 行为约束
-- logging_config.py 修复：新增 console handler，root logger 显式设为 INFO 级别
+- MINIMAXing_config.py 修复：新增 console handler，root logger 显式设为 INFO 级别
 - QWEN_DEBUG_PAYLOAD 环境变量：控制是否输出完整 LLM 请求 payload
 - SkillLoaderTool：_CREWAI_VAR_PATTERN 修复 CrewAI "Template variable not found" 报错
 - sandbox_directive 扩展到 21 个工具（含 browser_* 系列和环境探查工具）

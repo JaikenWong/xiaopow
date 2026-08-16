@@ -28,7 +28,7 @@ from crewai import Agent, Crew, Process, Task
 from crewai.agents.parser import AgentAction, AgentFinish
 
 from xiaopaw.agents.models import MainTaskOutput
-from xiaopaw.llm.aliyun_llm import AliyunLLM
+from xiaopaw.llm.minimax_llm import MiniMaxLLM
 from xiaopaw.models import SenderProtocol
 from xiaopaw.runner import AgentFn
 from xiaopaw.session.models import MessageEntry
@@ -176,7 +176,7 @@ def _build_crew(
     # 💡【第07课·max_iter】orchestrator_cfg 中包含 max_iter=50，防止主 Agent 无限循环
     orchestrator = Agent(
         **orchestrator_cfg,
-        llm=AliyunLLM(model="qwen3.6-max-preview", region="cn", temperature=0.3),
+        llm=MiniMaxLLM(model="MiniMax-M3", temperature=0.3),
         tools=tools,
         # 💡【第02课·ReAct 可视化】verbose=True 让 CrewAI 打印 Thought/Action/Observation
         # 结合 step_callback 可将推理过程实时推送到飞书（详见 _make_step_callback）
