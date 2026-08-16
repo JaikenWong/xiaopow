@@ -1,0 +1,162 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v0.1.0). Leave blank to use the latest tag.'
+        required: false
+
+permissions:
+  contents: write   # 创建 release + 上传 assets
+
+jobs:
+  # ── 1. 在 4 个平台并行出 PyInstaller 单文件 ──────────────────────────────
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14        # Apple Silicon
+            target: aarch64-apple-darwin
+            artifact_name: xiaopaw-darwin-arm64
+          - os: macos-13        # Intel
+            target: x86_64-apple-darwin
+            artifact_name: xiaopaw-darwin-x64
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            artifact_name: xiaopaw-linux-x64
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            artifact_name: xiaopaw-windows-x64.exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # PyInstaller 在 requirements.txt 里没列（仅打包期需要），显式装
+          python -m pip install pyinstaller
+
+      - name: Build sidecar
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python desktop/scripts/build_sidecar.py
+          # 重命名为带 target-triple 的可读名字
+          if [ -f dist/xiaopaw ]; then
+            mv dist/xiaopaw dist/${{ matrix.artifact_name }}
+          fi
+          if [ -f dist/xiaopaw.exe ]; then
+            mv dist/xiaopaw.exe dist/${{ matrix.artifact_name }}
+          fi
+          ls -lh dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/${{ matrix.artifact_name }}
+          if-no-files-found: error
+          retention-days: 7
+
+  # ── 2. 合并所有平台的产物，发布 GitHub Release ────────────────────────────
+  release:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download all platform binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: ls -lh artifacts/
+
+      - name: Generate checksums
+        working-directory: artifacts
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            certutil -hashsum *.exe sha256 > SHA256SUMS.txt
+          else
+            sha256sum * > SHA256SUMS.txt
+          fi
+          cat SHA256SUMS.txt
+
+      - name: Extract release notes from CHANGELOG / commits
+        id: notes
+        run: |
+          # 取 tag 之后的 commits 作为简易 changelog
+          if git rev-parse "${GITHUB_REF}^" >/dev/null 2>&1; then
+            NOTES=$(git log "${GITHUB_REF}^".."${GITHUB_REF}" --pretty=format:"- %s" | head -50)
+          else
+            NOTES="首发版本。"
+          fi
+          echo "notes<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$NOTES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          generate_release_notes: true
+          body: |
+            ## XiaoPaw 小爪子 ${{ steps.tag.outputs.tag }}
+
+            ${{ steps.notes.outputs.notes }}
+
+            ### 产物
+
+            | 平台 | 文件 | 大小 |
+            |------|------|------|
+            | macOS arm64 | `xiaopaw-darwin-arm64` | 见 Assets |
+            | macOS x64 | `xiaopaw-darwin-x64` | 见 Assets |
+            | Linux x64 | `xiaopaw-linux-x64` | 见 Assets |
+            | Windows x64 | `xiaopaw-windows-x64.exe` | 见 Assets |
+
+            ### 运行
+
+            ```bash
+            # CLI 模式
+            ./xiaopaw-darwin-arm64 --help
+
+            # 桌面 sidecar 模式（Tauri 用）
+            ./xiaopaw-darwin-arm64 --config config.yaml --api-port 9191
+            ```
+
+            首次启动约需 60s 解压 504MB 二进制（PyInstaller 单文件），属正常现象。
+
+            校验：`sha256sum -c SHA256SUMS.txt`
+          files: |
+            artifacts/xiaopaw-darwin-arm64
+            artifacts/xiaopaw-darwin-x64
+            artifacts/xiaopaw-linux-x64
+            artifacts/xiaopaw-windows-x64.exe
+            artifacts/SHA256SUMS.txt
+          fail_on_unmatched_files: true
+          draft: false
+          prerelease: false
