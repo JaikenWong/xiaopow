@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "XiaoPaw",
+  "version": "0.1.0",
+  "identifier": "com.xiaopaw.desktop",
+  "build": {
+    "beforeDevCommand": "python3 -m http.server 1420 --directory src",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "",
+    "frontendDist": "../src"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "XiaoPaw 小爪子",
+        "width": 960,
+        "height": 720,
+        "minWidth": 720,
+        "minHeight": 540,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:9191 http://127.0.0.1:9090; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "externalBin": ["binaries/xiaopaw"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

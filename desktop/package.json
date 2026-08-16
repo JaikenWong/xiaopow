@@ -1,0 +1,14 @@
+{
+  "name": "xiaopow-desktop",
+  "version": "0.1.0",
+  "description": "XiaoPaw 桌面工作助手",
+  "private": true,
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

@@ -1,0 +1,19 @@
+[package]
+name = "xiaopow-desktop"
+version = "0.1.0"
+description = "XiaoPaw 桌面工作助手"
+authors = ["XiaoPaw"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[features]
+# 该 feature 由 Tauri 在桌面构建时启用
+custom-protocol = ["tauri/custom-protocol"]
