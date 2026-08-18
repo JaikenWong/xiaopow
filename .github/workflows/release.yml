@@ -50,6 +50,7 @@ jobs:
       - name: Build sidecar
         env:
           PYTHONUNBUFFERED: "1"
+        shell: bash
         run: |
           python desktop/scripts/build_sidecar.py
           # 重命名为带 target-triple 的可读名字
