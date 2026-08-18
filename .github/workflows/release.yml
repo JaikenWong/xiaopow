@@ -44,7 +44,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # PyInstaller 在 requirements.txt 里没列（仅打包期需要），显式装
+          # 必须先装运行时依赖（crewai/lark_oapi/aiohttp 等），PyInstaller 才能 bundle
+          python -m pip install -r requirements.txt
+          # PyInstaller 本身在 requirements.txt 没列（仅打包期需要），显式装
           python -m pip install pyinstaller
 
       - name: Build sidecar
