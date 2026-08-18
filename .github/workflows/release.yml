@@ -50,6 +50,7 @@ jobs:
       - name: Build sidecar
         env:
           PYTHONUNBUFFERED: "1"
+          PYTHONIOENCODING: "utf-8"   # Windows 默认 cp1252，PyInstaller 输出含 unicode
         shell: bash
         run: |
           python desktop/scripts/build_sidecar.py
